@@ -1,119 +1,263 @@
-{ "commands": [
-
-  {
-    "hdr": "11", "rax": "F1",
-    "cmd": {"21": "00"},
-    "freq": 3,
-    "description": "K-Line KWP2000 only (ISO 14230-4 fast init). ECU address 0x11, tester 0xF1. Init sequence: ATTP5, ATSH 81 11 F1. Confirmed on Suzuki Cultus 2016 Pakistan (Alto K10 / K10B engine) and expected to apply to Suzuki Swift 1999 which shares the same Engine ECU platform. Response header: 61 00, followed by 65 data bytes. All bix offsets are into the data bytes only (i.e. after stripping the 2-byte 61 00 response header). Byte map was reverse-engineered from the SZ Viewer Android APK (Engine_KWP_00_Local$ class) and confirmed by live driving correlation.",
-    "signals": [
-
-      {"id": "SWIFT_ENGINE_LOAD",
-       "path": "Engine",
-       "fmt": {"bix": 104, "len": 8, "max": 100, "mul": 100, "div": 255, "unit": "percent"},
-       "name": "Engine load",
-       "suggestedMetric": "calculatedEngineLoad"},
-
-      {"id": "SWIFT_COOLANT_TEMP",
-       "path": "Engine",
-       "fmt": {"bix": 112, "len": 8, "max": 215, "min": -40, "add": -40, "unit": "celsius"},
-       "name": "Coolant temperature",
-       "suggestedMetric": "engineCoolantTemperature"},
-
-      {"id": "SWIFT_FUEL_CTRL_1",
-       "path": "Fuel",
-       "fmt": {"bix": 88, "len": 8, "max": 255, "unit": "scalar"},
-       "name": "Fuel pulse control 1 (raw)"},
-
-      {"id": "SWIFT_FUEL_CTRL_2",
-       "path": "Fuel",
-       "fmt": {"bix": 96, "len": 8, "max": 255, "unit": "scalar"},
-       "name": "Fuel pulse control 2 (raw)"},
-
-      {"id": "SWIFT_RPM",
-       "path": "Engine",
-       "fmt": {"bix": 160, "len": 16, "max": 8000, "div": 4, "unit": "revolutionsPerMinute"},
-       "name": "Engine RPM",
-       "suggestedMetric": "rpm"},
-
-      {"id": "SWIFT_SPEED",
-       "path": "Movement",
-       "fmt": {"bix": 176, "len": 8, "max": 180, "unit": "kilometersPerHour"},
-       "name": "Vehicle speed",
-       "suggestedMetric": "speed"},
-
-      {"id": "SWIFT_IGN_ADVANCE",
-       "path": "Engine",
-       "fmt": {"bix": 184, "len": 8, "max": 63, "min": -64, "add": -64, "unit": "degrees"},
-       "name": "Ignition advance",
-       "suggestedMetric": "ignitionTimingAdvance"},
-
-      {"id": "SWIFT_IAT",
-       "path": "Engine",
-       "fmt": {"bix": 192, "len": 8, "max": 215, "min": -40, "add": -40, "unit": "celsius"},
-       "name": "Intake air temperature",
-       "suggestedMetric": "intakeAirTemperature"},
-
-      {"id": "SWIFT_AIRFLOW_RAW",
-       "path": "Engine",
-       "fmt": {"bix": 200, "len": 8, "max": 255, "unit": "scalar"},
-       "name": "Air flow (raw MAF byte — scaling unconfirmed)"},
-
-      {"id": "SWIFT_TPS",
-       "path": "Engine",
-       "fmt": {"bix": 216, "len": 8, "max": 100, "mul": 100, "div": 255, "unit": "percent"},
-       "name": "Throttle position",
-       "suggestedMetric": "throttlePosition"},
-
-      {"id": "SWIFT_TPS_VOLTAGE",
-       "path": "Engine",
-       "fmt": {"bix": 288, "len": 8, "max": 5, "mul": 196, "div": 10000, "unit": "volts"},
-       "name": "Throttle position sensor voltage (0–5 V)"},
-
-      {"id": "SWIFT_O2_VOLTAGE",
-       "path": "Engine",
-       "fmt": {"bix": 232, "len": 8, "max": 5, "mul": 196, "div": 10000, "unit": "volts"},
-       "name": "O2 sensor voltage (0–5 V)",
-       "suggestedMetric": "oxygenSensorVoltageBank1Sensor1"},
-
-      {"id": "SWIFT_STFT",
-       "path": "Fuel",
-       "fmt": {"bix": 240, "len": 8, "max": 99, "min": -100, "mul": 78, "div": 100, "add": -100, "unit": "percent"},
-       "name": "Short-term fuel trim",
-       "suggestedMetric": "shortTermFuelTrimBank1"},
-
-      {"id": "SWIFT_DESIRED_IDLE",
-       "path": "Engine",
-       "fmt": {"bix": 280, "len": 8, "max": 2550, "mul": 10, "unit": "revolutionsPerMinute"},
-       "name": "Desired idle speed"},
-
-      {"id": "SWIFT_INJ_PW",
-       "path": "Fuel",
-       "fmt": {"bix": 296, "len": 16, "max": 16777, "mul": 256, "div": 1000, "unit": "milliseconds"},
-       "name": "Injector pulse width",
-       "suggestedMetric": "fuelInjectorPulseWidth"},
-
-      {"id": "SWIFT_BARO",
-       "path": "Engine",
-       "fmt": {"bix": 328, "len": 8, "max": 128, "div": 2, "unit": "kiloPascals"},
-       "name": "Barometric pressure",
-       "suggestedMetric": "barometricPressure"},
-
-      {"id": "SWIFT_IAC_POS",
-       "path": "Engine",
-       "fmt": {"bix": 336, "len": 8, "max": 100, "mul": 100, "div": 255, "unit": "percent"},
-       "name": "Idle air control valve position"},
-
-      {"id": "SWIFT_IAC_FLOW",
-       "path": "Engine",
-       "fmt": {"bix": 344, "len": 8, "max": 255, "unit": "scalar"},
-       "name": "Idle air control flow (raw)"},
-
-      {"id": "SWIFT_BATT_V",
-       "path": "Engine",
-       "fmt": {"bix": 392, "len": 8, "max": 20, "mul": 784, "div": 10000, "unit": "volts"},
-       "name": "Battery voltage",
-       "suggestedMetric": "batteryVoltage"}
-
-    ]}
-
-]}
+{
+  "commands": [
+    {
+      "hdr": "11",
+      "rax": "F1",
+      "cmd": {
+        "21": "00"
+      },
+      "freq": 3,
+      "description": "K-Line KWP2000 only (ISO 14230-4 fast init). ECU address 0x11, tester 0xF1. Init sequence: ATTP5, ATSH 81 11 F1. Confirmed on Suzuki Cultus 2016 Pakistan (Alto K10 / K10B engine) and expected to apply to Suzuki Swift 1999 which shares the same Engine ECU platform. Response header: 61 00, followed by 65 data bytes. All bix offsets are into the data bytes only (i.e. after stripping the 2-byte 61 00 response header). Byte map was reverse-engineered from the SZ Viewer Android APK (Engine_KWP_00_Local$ class) and confirmed by live driving correlation.",
+      "signals": [
+        {
+          "id": "SWIFT_ENGINE_LOAD",
+          "path": "Engine",
+          "fmt": {
+            "bix": 104,
+            "len": 8,
+            "max": 100,
+            "mul": 100,
+            "div": 255,
+            "unit": "percent"
+          },
+          "name": "Engine load",
+          "suggestedMetric": "calculatedEngineLoad"
+        },
+        {
+          "id": "SWIFT_COOLANT_TEMP",
+          "path": "Engine",
+          "fmt": {
+            "bix": 112,
+            "len": 8,
+            "max": 215,
+            "min": -40,
+            "add": -40,
+            "unit": "celsius"
+          },
+          "name": "Coolant temperature",
+          "suggestedMetric": "engineCoolantTemperature"
+        },
+        {
+          "id": "SWIFT_FUEL_CTRL_1",
+          "path": "Fuel",
+          "fmt": {
+            "bix": 88,
+            "len": 8,
+            "max": 255,
+            "unit": "scalar"
+          },
+          "name": "Fuel pulse control 1 (raw)"
+        },
+        {
+          "id": "SWIFT_FUEL_CTRL_2",
+          "path": "Fuel",
+          "fmt": {
+            "bix": 96,
+            "len": 8,
+            "max": 255,
+            "unit": "scalar"
+          },
+          "name": "Fuel pulse control 2 (raw)"
+        },
+        {
+          "id": "SWIFT_RPM",
+          "path": "Engine",
+          "fmt": {
+            "bix": 160,
+            "len": 16,
+            "max": 8000,
+            "div": 4,
+            "unit": "revolutionsPerMinute"
+          },
+          "name": "Engine RPM",
+          "suggestedMetric": "rpm"
+        },
+        {
+          "id": "SWIFT_SPEED",
+          "path": "Movement",
+          "fmt": {
+            "bix": 176,
+            "len": 8,
+            "max": 180,
+            "unit": "kilometersPerHour"
+          },
+          "name": "Vehicle speed",
+          "suggestedMetric": "speed"
+        },
+        {
+          "id": "SWIFT_IGN_ADVANCE",
+          "path": "Engine",
+          "fmt": {
+            "bix": 184,
+            "len": 8,
+            "max": 63,
+            "min": -64,
+            "add": -64,
+            "unit": "degrees"
+          },
+          "name": "Ignition advance",
+          "suggestedMetric": "ignitionTimingAdvance"
+        },
+        {
+          "id": "SWIFT_IAT",
+          "path": "Engine",
+          "fmt": {
+            "bix": 192,
+            "len": 8,
+            "max": 215,
+            "min": -40,
+            "add": -40,
+            "unit": "celsius"
+          },
+          "name": "Intake air temperature",
+          "suggestedMetric": "intakeAirTemperature"
+        },
+        {
+          "id": "SWIFT_AIRFLOW_RAW",
+          "path": "Engine",
+          "fmt": {
+            "bix": 200,
+            "len": 8,
+            "max": 255,
+            "unit": "scalar"
+          },
+          "name": "Air flow (raw MAF byte — scaling unconfirmed)"
+        },
+        {
+          "id": "SWIFT_TPS",
+          "path": "Engine",
+          "fmt": {
+            "bix": 216,
+            "len": 8,
+            "max": 100,
+            "mul": 100,
+            "div": 255,
+            "unit": "percent"
+          },
+          "name": "Throttle position",
+          "suggestedMetric": "throttlePosition"
+        },
+        {
+          "id": "SWIFT_TPS_VOLTAGE",
+          "path": "Engine",
+          "fmt": {
+            "bix": 288,
+            "len": 8,
+            "max": 5,
+            "mul": 196,
+            "div": 10000,
+            "unit": "volts"
+          },
+          "name": "Throttle position sensor voltage (0–5 V)"
+        },
+        {
+          "id": "SWIFT_O2_VOLTAGE",
+          "path": "Engine",
+          "fmt": {
+            "bix": 232,
+            "len": 8,
+            "max": 5,
+            "mul": 196,
+            "div": 10000,
+            "unit": "volts"
+          },
+          "name": "O2 sensor voltage (0–5 V)",
+          "suggestedMetric": "oxygenSensorVoltageBank1Sensor1"
+        },
+        {
+          "id": "SWIFT_STFT",
+          "path": "Fuel",
+          "fmt": {
+            "bix": 240,
+            "len": 8,
+            "max": 99,
+            "min": -100,
+            "mul": 78,
+            "div": 100,
+            "add": -100,
+            "unit": "percent"
+          },
+          "name": "Short-term fuel trim",
+          "suggestedMetric": "shortTermFuelTrimBank1"
+        },
+        {
+          "id": "SWIFT_DESIRED_IDLE",
+          "path": "Engine",
+          "fmt": {
+            "bix": 280,
+            "len": 8,
+            "max": 2550,
+            "mul": 10,
+            "unit": "revolutionsPerMinute"
+          },
+          "name": "Desired idle speed"
+        },
+        {
+          "id": "SWIFT_INJ_PW",
+          "path": "Fuel",
+          "fmt": {
+            "bix": 296,
+            "len": 16,
+            "max": 16777,
+            "mul": 256,
+            "div": 1000,
+            "unit": "milliseconds"
+          },
+          "name": "Injector pulse width",
+          "suggestedMetric": "fuelInjectorPulseWidth"
+        },
+        {
+          "id": "SWIFT_BARO",
+          "path": "Engine",
+          "fmt": {
+            "bix": 328,
+            "len": 8,
+            "max": 128,
+            "div": 2,
+            "unit": "kiloPascals"
+          },
+          "name": "Barometric pressure",
+          "suggestedMetric": "barometricPressure"
+        },
+        {
+          "id": "SWIFT_IAC_POS",
+          "path": "Engine",
+          "fmt": {
+            "bix": 336,
+            "len": 8,
+            "max": 100,
+            "mul": 100,
+            "div": 255,
+            "unit": "percent"
+          },
+          "name": "Idle air control valve position"
+        },
+        {
+          "id": "SWIFT_IAC_FLOW",
+          "path": "Engine",
+          "fmt": {
+            "bix": 344,
+            "len": 8,
+            "max": 255,
+            "unit": "scalar"
+          },
+          "name": "Idle air control flow (raw)"
+        },
+        {
+          "id": "SWIFT_BATT_V",
+          "path": "Engine",
+          "fmt": {
+            "bix": 392,
+            "len": 8,
+            "max": 20,
+            "mul": 784,
+            "div": 10000,
+            "unit": "volts"
+          },
+          "name": "Battery voltage",
+          "suggestedMetric": "batteryVoltage"
+        }
+      ]
+    }
+  ]
+}
