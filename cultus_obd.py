@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 """
-Suzuki Cultus 2016 (Pakistan) — K-Line KWP2000 live data reader
+Suzuki Cultus 2016 (Pakistan) — K-Line KWP2000 live data reader + DTC scanner
 BLE adapter: IOS-Vlink (ELM327 v2.3)
 Protocol: ISO 14230 fast init, ECU 0x11, service 0x21 local ID 0x00
+
+Usage:
+  python3 cultus_obd.py          — live data stream
+  python3 cultus_obd.py dtc      — read DTCs and exit
+  python3 cultus_obd.py clear    — clear DTCs and exit
 
 Note: The Cultus 2016 sold in Pakistan shares its engine ECU platform with
 the Suzuki Swift 1999. Standard OBD-II (ISO 15765 / CAN) does not work;
@@ -95,6 +100,41 @@ def decode_engine_frame(raw_hex: str) -> EngineData | None:
     )
 
 
+# ── DTC helpers ───────────────────────────────────────────────────────────────
+_DTC_PREFIX = ["P0", "P1", "P2", "P3", "C0", "C1", "C2", "C3",
+               "B0", "B1", "B2", "B3", "U0", "U1", "U2", "U3"]
+
+def decode_dtc(b1: int, b2: int) -> str:
+    """Convert two raw KWP2000 DTC bytes to standard Pxxxx / Cxxxx string."""
+    prefix = _DTC_PREFIX[(b1 >> 4) & 0x0F]
+    code   = f"{b1 & 0x0F:01X}{b2:02X}"
+    return f"{prefix}{code}"
+
+def parse_dtc_response(raw_hex: str) -> list[str] | None:
+    """
+    Parse response to KWP2000 service 0x18 (ReadDTCsByStatus).
+    Response format: 58 <count> [b1 b2 status] × count
+    Returns list of DTC strings, or None if response is unrecognised.
+    """
+    clean = re.sub(r'[^0-9A-Fa-f]', '', raw_hex)
+    if not clean.startswith("58"):
+        return None
+    data = bytes.fromhex(clean)
+    if len(data) < 2:
+        return None
+    count = data[1]
+    dtcs  = []
+    for i in range(count):
+        base = 2 + i * 3
+        if base + 2 >= len(data):
+            break
+        b1, b2 = data[base], data[base + 1]
+        if b1 == 0 and b2 == 0:
+            continue
+        dtcs.append(decode_dtc(b1, b2))
+    return dtcs
+
+
 # ── ELM327 communication ─────────────────────────────────────────────────────
 class ELM327:
     def __init__(self, client: BleakClient):
@@ -136,6 +176,73 @@ class ELM327:
                 await self.send("ATKW")
                 return True
         return False
+
+
+# ── DTC scan / clear ──────────────────────────────────────────────────────────
+async def run_dtc(clear: bool = False):
+    print(f"Scanning for {DEVICE_NAME}...")
+    device = await BleakScanner.find_device_by_filter(
+        lambda d, _: d.name and DEVICE_NAME.lower() in d.name.lower(),
+        timeout=15,
+    )
+    if not device:
+        print("Device not found.")
+        return
+
+    print(f"Found: {device.name} [{device.address}]")
+
+    async with BleakClient(device) as client:
+        elm = ELM327(client)
+        await elm.start()
+
+        print("Initializing ELM327...")
+        await elm.init_elm()
+
+        print("Connecting to engine ECU (0x11)...")
+        if not await elm.init_ecu():
+            print("ECU init failed.")
+            return
+
+        await elm.send("3E", timeout=3)
+
+        if clear:
+            print("\nClearing DTCs (service 0x14)...")
+            r = await elm.send("14 FF 00", timeout=5)
+            clean = re.sub(r'[^0-9A-Fa-f]', '', r)
+            if clean.startswith("54"):
+                print("DTCs cleared successfully.")
+            else:
+                print(f"Unexpected response: {r.strip()!r}")
+            return
+
+        print("\nReading DTCs (service 0x18 — ReadDTCsByStatus, all groups)...")
+        # 18 00 FF 00 — status mask 0xFF (all), group 0x0000 (all)
+        r = await elm.send("18 00 FF 00", timeout=5)
+        dtcs = parse_dtc_response(r)
+
+        if dtcs is None:
+            # Try standard OBD-II mode 03 as fallback
+            print("Service 0x18 got no valid response — trying mode 03...")
+            r = await elm.send("03", timeout=5)
+            clean = re.sub(r'[^0-9A-Fa-f]', '', r)
+            if clean.startswith("43") and len(clean) >= 4:
+                data  = bytes.fromhex(clean[2:])
+                dtcs  = []
+                for i in range(0, len(data) - 1, 2):
+                    if data[i] == 0 and data[i+1] == 0:
+                        continue
+                    dtcs.append(decode_dtc(data[i], data[i+1]))
+            else:
+                print(f"No DTC response recognised. Raw: {r.strip()!r}")
+                return
+
+        if not dtcs:
+            print("No DTCs stored. System is clean.")
+        else:
+            print(f"\nFound {len(dtcs)} DTC(s):")
+            for code in dtcs:
+                print(f"  {code}")
+            print("\nRun with 'clear' argument to erase them.")
 
 
 # ── Main loop ─────────────────────────────────────────────────────────────────
@@ -197,8 +304,16 @@ async def run():
             await asyncio.sleep(0.3)
 
 def main():
+    mode = sys.argv[1].lower() if len(sys.argv) > 1 else "live"
+
     loop = asyncio.new_event_loop()
-    task = loop.create_task(run())
+
+    if mode == "dtc":
+        task = loop.create_task(run_dtc(clear=False))
+    elif mode == "clear":
+        task = loop.create_task(run_dtc(clear=True))
+    else:
+        task = loop.create_task(run())
 
     def _stop(*_):
         task.cancel()
