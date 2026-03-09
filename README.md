@@ -198,14 +198,17 @@ The XML maps data to standard RealDash channel IDs:
 | targetId | Channel | Parameter |
 |----------|---------|-----------|
 | 37 | RPM | Engine RPM |
-| 36 | Coolant Temp | Coolant Temperature |
-| 39 | Speed | Vehicle Speed |
-| 33 | TPS | Throttle Position |
-| 38 | IAT | Intake Air Temp |
-| 42 | Baro | Barometric Pressure |
-| 14 | Batt | Battery Voltage |
-| 34 | Engine Load | Engine Load |
-| 45 | Ign Advance | Ignition Advance |
+| 14 | Coolant Temp | Coolant Temperature |
+| 64 | Speed | Vehicle Speed KPH |
+| 42 | TPS | Throttle Position % |
+| 27 | IAT | Intake Air Temp |
+| 11 | Baro | Barometric Pressure kPa |
+| 12 | Batt | Battery Voltage |
+| 100 | Engine Load | Engine Load % |
+| 38 | Ign Advance | Spark Advance deg |
+| 35 | Injector PW | Injector Pulse Width ms |
+| 254 | O2 Sensor | O2 Sensor Voltage (Lambda 1) |
+| 17 | STFT | Short-Term Fuel Trim % |
 
 ---
 

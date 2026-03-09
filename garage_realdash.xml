@@ -3,12 +3,12 @@
    <settings>
       <value name="UserName" v="Default"></value>
       <value name="GridSize" v="0"></value>
-      <value name="VehicleWeight" v="1650"></value>
+      <value name="VehicleWeight" v="800"></value>
       <value name="DataSource" v="100"></value>
       <value name="DataloggingFormat" v="0"></value>
       <value name="RpmInputMode" v="0"></value>
-      <value name="VehicleMake" v="My Supercar"></value>
-      <value name="VehicleModel" v=""></value>
+      <value name="VehicleMake" v="Suzuki"></value>
+      <value name="VehicleModel" v="Cultus 2016"></value>
       <value name="Gear1" v="17.444335937500000"></value>
       <value name="Gear2" v="9.721694946289063"></value>
       <value name="Gear3" v="6.281430721282959"></value>
@@ -20,35 +20,35 @@
       <value name="Gear9" v="0.000000000000000"></value>
       <value name="Gear10" v="0.000000000000000"></value>
       <value name="FinalGearRatio" v="1.000000000000000"></value>
-      <value name="TireCircumferenceInMeters" v="2.049261093139648"></value>
+      <value name="TireCircumferenceInMeters" v="1.807349681854248"></value>
       <value name="UserNickname" v="talhabalaj"></value>
-      <value name="EngineCC" v="5998"></value>
+      <value name="EngineCC" v="1000"></value>
       <value name="NumCylinders" v="4"></value>
-      <value name="InjectorSizeCC" v="840"></value>
+      <value name="InjectorSizeCC" v="200"></value>
       <value name="LanguageCode" v="en"></value>
       <value name="Fuel" v="0"></value>
       <value name="EngineVE" v="75.000000000000000"></value>
-      <value name="UserRpmWarningLevel" v="6500.000000000000000"></value>
-      <value name="UserRpmCriticalLevel" v="7000.000000000000000"></value>
+      <value name="UserRpmWarningLevel" v="5500.000000000000000"></value>
+      <value name="UserRpmCriticalLevel" v="6500.000000000000000"></value>
       <value name="TirePressureWarningLimit" v="1.899999976158142"></value>
-      <value name="MaxRpm" v="8000.000000000000000"></value>
-      <value name="MaxSpeed" v="330.000000000000000"></value>
+      <value name="MaxRpm" v="7000.000000000000000"></value>
+      <value name="MaxSpeed" v="150.000000000000000"></value>
       <value name="IdleRpm" v="900"></value>
       <value name="DatalogRowsPerSecLimit" v="100"></value>
       <value name="DatalogLocalFileCountLimit" v="0"></value>
-      <value name="FuelCapacityLiters" v="60.000000000000000"></value>
+      <value name="FuelCapacityLiters" v="35.000000000000000"></value>
       <value name="FuelConsumptionCorrectionFactor" v="1.000000000000000"></value>
       <value name="FuelConsumptionUnits" v="3"></value>
-      <value name="FuelPricePerLiter" v="1.450000047683716"></value>
+      <value name="FuelPricePerLiter" v="322.000000000000000"></value>
       <value name="VehicleType" v="0"></value>
       <value name="EngineType" v="10"></value>
-      <value name="VehicleColor" v="4291054532"></value>
+      <value name="VehicleColor" v="4294967295"></value>
       <value name="KilometersToNextService" v="15000"></value>
       <value name="HoursToNextService" v="1500"></value>
-      <value name="WheelSize" v="17.000000000000000"></value>
+      <value name="WheelSize" v="13.000000000000000"></value>
       <value name="DriveType" v="0"></value>
-      <value name="TireWidth" v="245"></value>
-      <value name="TireAspect" v="45"></value>
+      <value name="TireWidth" v="175"></value>
+      <value name="TireAspect" v="70"></value>
       <value name="FrontalAreaM2" v="3.000000000000000"></value>
       <value name="DragCoefficient" v="0.329999983310699"></value>
       <value name="RollingResistance" v="0.019999980926514"></value>
@@ -141,4 +141,3 @@
       <connection source="1" type="1" deviceName="IOS-Vlink" deviceGuid="0F6159A9-F6CC-981C-1D65-A6BCB376C530" ipAddress="" ipPort="0" baudRate="115200" connDelay="0" dtr="0" rts="0" ble="0" uint0="0" uint1="0" uint2="0" float0="0.000000000000000" float1="0.000000000000000" float2="92.512001037597656" string0="realdash_cultus_2016.xml"></connection>
    </connections>
 </RealDash>
-
