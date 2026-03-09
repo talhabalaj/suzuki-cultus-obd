@@ -32,7 +32,7 @@
       <value name="UserRpmCriticalLevel" v="6500.000000000000000"></value>
       <value name="TirePressureWarningLimit" v="1.899999976158142"></value>
       <value name="MaxRpm" v="7000.000000000000000"></value>
-      <value name="MaxSpeed" v="150.000000000000000"></value>
+      <value name="MaxSpeed" v="180.000000000000000"></value>
       <value name="IdleRpm" v="900"></value>
       <value name="DatalogRowsPerSecLimit" v="100"></value>
       <value name="DatalogLocalFileCountLimit" v="0"></value>
