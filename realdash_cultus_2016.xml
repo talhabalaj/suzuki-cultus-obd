@@ -53,24 +53,22 @@
          Engine data block — service 0x21, local ID 0x00
          rawReply="true": B0=0x61, B1=0x00, data starts at B2
          All Bn = Python b[n-2]  (offsets are +2 vs Python)
-
-         Split into three skipCount tiers so fast-changing signals
-         (RPM, Speed, TPS) are fetched every loop while slowly-
-         changing sensors (Baro, Battery, IAT) are polled less often.
-         Each block sends the same 21 00 command independently.
          ═══════════════════════════════════════════════════════════ -->
-
-    <!-- ── FAST — every loop (skipCount=0) ───────────────────────
-         RPM · Speed · TPS · Engine Load · Ign Advance
-         O2 · STFT · Injector PW                                   -->
-    <command send="21 00" skipCount="0" rawReply="true" keepInRotation="true"
-             name="Cultus: Fast block">
+    <command send="21 00" skipCount="0" rawReply="true" keepInRotation="true">
       <values>
+
+        <!-- ── Core ────────────────────────────────────────────── -->
 
         <!-- RPM  b[20:21]=B22,B23  (B22<<8|B23)×0.25 -->
         <value targetId="37"
                conversion="(B22*256+B23)*0.25"
                name="Cultus: RPM"></value>
+
+        <!-- Coolant Temperature  b[14]=B16  V-40=°C -->
+        <value targetId="14"
+               units="C"
+               conversion="B16-40"
+               name="Cultus: Coolant Temp"></value>
 
         <!-- Vehicle Speed  b[22]=B24  raw km/h -->
         <value targetId="64"
@@ -84,62 +82,15 @@
                conversion="B29*0.392"
                name="Cultus: TPS"></value>
 
-        <!-- Engine Load  b[13]=B15  V×100/255=% -->
-        <value targetId="100"
-               units="%"
-               conversion="B15*0.392157"
-               name="Cultus: Engine Load"></value>
-
-        <!-- Ignition Advance  b[23]=B25  V-64=° BTDC -->
-        <value targetId="38"
-               conversion="B25-64"
-               name="Cultus: Ignition Advance"></value>
-
-        <!-- O2 Sensor Voltage  b[29]=B31  ×0.0196≈0–5V -->
-        <value targetId="254"
-               conversion="B31*0.0196"
-               name="Cultus: O2 Sensor (V)"></value>
-
-        <!-- Short-Term Fuel Trim  b[30]=B32  V×0.78-100=% -->
-        <value targetId="17"
-               conversion="B32*0.78-100"
-               name="Cultus: STFT (%)"></value>
-
-        <!-- Injector Pulse Width  b[37:38]=B39,B40  (B39<<8|B40)×0.256=ms -->
-        <value targetId="35"
-               conversion="(B39*256+B40)*0.256"
-               name="Cultus: Injector PW (ms)"></value>
-
-      </values>
-    </command>
-
-    <!-- ── MEDIUM — every 3rd loop (skipCount=2) ─────────────────
-         Coolant Temp · IAT                                        -->
-    <command send="21 00" skipCount="2" rawReply="true" keepInRotation="true"
-             name="Cultus: Medium block">
-      <values>
-
-        <!-- Coolant Temperature  b[14]=B16  V-40=°C -->
-        <value targetId="14"
-               units="C"
-               conversion="B16-40"
-               name="Cultus: Coolant Temp"></value>
+        <!-- Throttle Sensor Voltage  b[36]=B38  ×0.0196≈0–5V -->
+        <value conversion="B38*0.0196"
+               name="Cultus: TPS Sensor Voltage (V)"></value>
 
         <!-- Intake Air Temperature  b[24]=B26  V-40=°C -->
         <value targetId="27"
                units="C"
                conversion="B26-40"
                name="Cultus: IAT"></value>
-
-      </values>
-    </command>
-
-    <!-- ── SLOW — every 10th loop (skipCount=9) ──────────────────
-         Baro · Battery · TPS Voltage · Desired Idle
-         IAC · Air Flow · Fuel Control 1/2                        -->
-    <command send="21 00" skipCount="9" rawReply="true" keepInRotation="true"
-             name="Cultus: Slow block">
-      <values>
 
         <!-- Barometric Pressure  b[41]=B43  V×0.5=kPa -->
         <value targetId="11"
@@ -152,25 +103,29 @@
                conversion="B51*0.0784"
                name="Cultus: Battery Voltage"></value>
 
-        <!-- Throttle Sensor Voltage  b[36]=B38  ×0.0196≈0–5V -->
-        <value conversion="B38*0.0196"
-               name="Cultus: TPS Sensor Voltage (V)"></value>
+        <!-- ── Engine ──────────────────────────────────────────── -->
+
+        <!-- Engine Load  b[13]=B15  V×100/255=% -->
+        <value targetId="100"
+               units="%"
+               conversion="B15*0.392157"
+               name="Cultus: Engine Load"></value>
+
+        <!-- Ignition Advance  b[23]=B25  V-64=° BTDC -->
+        <value targetId="38"
+               conversion="B25-64"
+               name="Cultus: Ignition Advance"></value>
 
         <!-- Desired Idle Speed  b[35]=B37  ×10=RPM -->
         <value conversion="B37*10"
                name="Cultus: Desired Idle RPM"></value>
 
-        <!-- IAC Position  b[42]=B44  V×0.392=% -->
-        <value conversion="B44*0.392"
-               name="Cultus: IAC Position (%)"></value>
+        <!-- ── Fuel / Injection ────────────────────────────────── -->
 
-        <!-- IAC Flow  b[43]=B45  raw -->
-        <value conversion="B45"
-               name="Cultus: IAC Flow (raw)"></value>
-
-        <!-- Air Flow  b[25]=B27  raw -->
-        <value conversion="B27"
-               name="Cultus: Air Flow (raw)"></value>
+        <!-- Injector Pulse Width  b[37:38]=B39,B40  (B39<<8|B40)×0.256=ms -->
+        <value targetId="35"
+               conversion="(B39*256+B40)*0.256"
+               name="Cultus: Injector PW (ms)"></value>
 
         <!-- Fuel Pulse Control 1  b[11]=B13  raw -->
         <value conversion="B13"
@@ -179,6 +134,34 @@
         <!-- Fuel Pulse Control 2  b[12]=B14  raw -->
         <value conversion="B14"
                name="Cultus: Fuel Control 2 (raw)"></value>
+
+        <!-- ── O2 / Fuel Trim ──────────────────────────────────── -->
+
+        <!-- O2 Sensor Voltage  b[29]=B31  ×0.0196≈0–5V  (Lambda 1 is closest RealDash slot) -->
+        <value targetId="254"
+               conversion="B31*0.0196"
+               name="Cultus: O2 Sensor (V)"></value>
+
+        <!-- Short-Term Fuel Trim  b[30]=B32  V×0.78-100=% -->
+        <value targetId="17"
+               conversion="B32*0.78-100"
+               name="Cultus: STFT (%)"></value>
+
+        <!-- ── Air ─────────────────────────────────────────────── -->
+
+        <!-- Air Flow  b[25]=B27  raw -->
+        <value conversion="B27"
+               name="Cultus: Air Flow (raw)"></value>
+
+        <!-- ── Idle Air Control ─────────────────────────────────── -->
+
+        <!-- IAC Position  b[42]=B44  V×0.392=% -->
+        <value conversion="B44*0.392"
+               name="Cultus: IAC Position (%)"></value>
+
+        <!-- IAC Flow  b[43]=B45  raw -->
+        <value conversion="B45"
+               name="Cultus: IAC Flow (raw)"></value>
 
       </values>
     </command>
