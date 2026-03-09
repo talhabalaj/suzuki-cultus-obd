@@ -8,11 +8,11 @@
   To import: Connections → tap your ELM327 connection → Select Vehicle
              → scroll to "Custom Channel Description File" → pick this file
 
-  RESPONSE LAYOUT (rawReply="true"):
-    B0  = 0x61  (response service ID)
-    B1  = 0x00  (local ID echo)
-    B2  = data[0] ... B66 = data[64]
-  All Bn offsets = Python b[n-2], i.e. data byte index + 2
+  BYTE LAYOUT:
+    rawReply="true" is required so RealDash accepts the 67-byte response.
+    Despite rawReply, RealDash still strips the "61 00" service header,
+    so B0 = data[0] — identical to Python script's b[0].
+    All Bn here match Python b[n] exactly (no +2 shift).
 -->
 <OBD2>
 
@@ -51,118 +51,117 @@
 
     <!-- ═══════════════════════════════════════════════════════════
          Engine data block — service 0x21, local ID 0x00
-         Request : 21 00
-         Response: 61 00 + 65 data bytes (67 bytes total)
-         rawReply="true": B0=0x61, B1=0x00, data starts at B2
-         All offsets = data_byte_index + 2
+         rawReply="true" required to accept 67-byte response.
+         B0 = data[0] (RealDash strips "61 00" even with rawReply).
+         Bn = Python b[n] — offsets are identical.
          ═══════════════════════════════════════════════════════════ -->
     <command send="21 00" skipCount="0" rawReply="true" keepInRotation="true">
       <values>
 
         <!-- ── Core ────────────────────────────────────────────── -->
 
-        <!-- RPM  b[20:21]=B22,B23  (B22<<8|B23) × 0.25 -->
+        <!-- RPM  b[20:21]  (B20<<8|B21) × 0.25 -->
         <value targetId="37"
-               conversion="(B22*256+B23)*0.25"
+               conversion="(B20*256+B21)*0.25"
                name="Cultus: RPM"></value>
 
-        <!-- Coolant Temperature  b[14]=B16  V-40=°C -->
+        <!-- Coolant Temperature  b[14]  V-40=°C -->
         <value targetId="36"
                units="C"
-               conversion="B16-40"
+               conversion="B14-40"
                name="Cultus: Coolant Temp"></value>
 
-        <!-- Vehicle Speed  b[22]=B24  raw km/h -->
+        <!-- Vehicle Speed  b[22]  raw km/h -->
         <value targetId="39"
                units="km/h"
-               conversion="B24"
+               conversion="B22"
                name="Cultus: Speed"></value>
 
-        <!-- Throttle Position  b[27]=B29  V×0.392=% -->
+        <!-- Throttle Position  b[27]  V×0.392=% -->
         <value targetId="33"
                units="%"
-               conversion="B29*0.392"
+               conversion="B27*0.392"
                name="Cultus: TPS"></value>
 
-        <!-- Throttle Sensor Voltage  b[36]=B38  ×0.0196≈0–5V -->
-        <value conversion="B38*0.0196"
+        <!-- Throttle Sensor Voltage  b[36]  ×0.0196≈0–5V -->
+        <value conversion="B36*0.0196"
                name="Cultus: TPS Sensor Voltage (V)"></value>
 
-        <!-- Intake Air Temperature  b[24]=B26  V-40=°C -->
+        <!-- Intake Air Temperature  b[24]  V-40=°C -->
         <value targetId="38"
                units="C"
-               conversion="B26-40"
+               conversion="B24-40"
                name="Cultus: IAT"></value>
 
-        <!-- Barometric Pressure  b[41]=B43  V×0.05=bar -->
+        <!-- Barometric Pressure  b[41]  V×0.5=kPa → ×0.05=bar -->
         <value targetId="42"
                units="bar"
-               conversion="B43*0.05"
+               conversion="B41*0.05"
                name="Cultus: Baro Pressure"></value>
 
-        <!-- Battery Voltage  b[49]=B51  V×0.0784=V -->
+        <!-- Battery Voltage  b[49]  V×0.0784=V -->
         <value targetId="14"
-               conversion="B51*0.0784"
+               conversion="B49*0.0784"
                name="Cultus: Battery Voltage"></value>
 
         <!-- ── Engine ──────────────────────────────────────────── -->
 
-        <!-- Engine Load  b[13]=B15  V×100/255=% -->
+        <!-- Engine Load  b[13]  V×100/255=% -->
         <value targetId="34"
                units="%"
-               conversion="B15*0.392157"
+               conversion="B13*0.392157"
                name="Cultus: Engine Load"></value>
 
-        <!-- Ignition Advance  b[23]=B25  V-64=° BTDC -->
+        <!-- Ignition Advance  b[23]  V-64=° BTDC -->
         <value targetId="45"
-               conversion="B25-64"
+               conversion="B23-64"
                name="Cultus: Ignition Advance"></value>
 
-        <!-- Desired Idle Speed  b[35]=B37  ×10=RPM -->
-        <value conversion="B37*10"
+        <!-- Desired Idle Speed  b[35]  ×10=RPM -->
+        <value conversion="B35*10"
                name="Cultus: Desired Idle RPM"></value>
 
         <!-- ── Fuel / Injection ────────────────────────────────── -->
 
-        <!-- Injector Pulse Width  b[37:38]=B39,B40  ×0.256=ms -->
+        <!-- Injector Pulse Width  b[37:38]  (B37<<8|B38) × 0.256=ms -->
         <value targetId="59"
-               conversion="(B39*256+B40)*0.256"
+               conversion="(B37*256+B38)*0.256"
                name="Cultus: Injector PW (ms)"></value>
 
-        <!-- Fuel Pulse Control 1  b[11]=B13  raw -->
-        <value conversion="B13"
+        <!-- Fuel Pulse Control 1  b[11]  raw -->
+        <value conversion="B11"
                name="Cultus: Fuel Control 1 (raw)"></value>
 
-        <!-- Fuel Pulse Control 2  b[12]=B14  raw -->
-        <value conversion="B14"
+        <!-- Fuel Pulse Control 2  b[12]  raw -->
+        <value conversion="B12"
                name="Cultus: Fuel Control 2 (raw)"></value>
 
         <!-- ── O2 / Fuel Trim ──────────────────────────────────── -->
 
-        <!-- O2 Sensor Voltage  b[29]=B31  ×0.0196≈0–5V -->
+        <!-- O2 Sensor Voltage  b[29]  ×0.0196≈0–5V -->
         <value targetId="0"
-               conversion="B31*0.0196"
+               conversion="B29*0.0196"
                name="Cultus: O2 Sensor (V)"></value>
 
-        <!-- Short-Term Fuel Trim  b[30]=B32  V×0.78-100=% -->
+        <!-- Short-Term Fuel Trim  b[30]  V×0.78-100=% -->
         <value targetId="92"
-               conversion="B32*0.78-100"
+               conversion="B30*0.78-100"
                name="Cultus: STFT (%)"></value>
 
         <!-- ── Air ─────────────────────────────────────────────── -->
 
-        <!-- Air Flow  b[25]=B27  raw -->
-        <value conversion="B27"
+        <!-- Air Flow  b[25]  raw -->
+        <value conversion="B25"
                name="Cultus: Air Flow (raw)"></value>
 
         <!-- ── Idle Air Control ─────────────────────────────────── -->
 
-        <!-- IAC Position  b[42]=B44  V×0.392=% -->
-        <value conversion="B44*0.392"
+        <!-- IAC Position  b[42]  V×0.392=% -->
+        <value conversion="B42*0.392"
                name="Cultus: IAC Position (%)"></value>
 
-        <!-- IAC Flow  b[43]=B45  raw -->
-        <value conversion="B45"
+        <!-- IAC Flow  b[43]  raw -->
+        <value conversion="B43"
                name="Cultus: IAC Flow (raw)"></value>
 
       </values>
