@@ -179,20 +179,17 @@ Press `Ctrl+C` to stop.
 
 ### Step-by-step setup
 
+The XML file uses the **OBD2 format** (`<OBD2>` root), which is loaded into an **ELM327 (BLE)** connection — not "RealDash Custom". The init section handles all the KWP2000 AT commands automatically.
+
 1. Install **RealDash** on Android or iOS.
-2. Open RealDash → **Connections** → **Add Connection**.
-3. Choose **RealDash Custom (BLE)**.
+2. Open RealDash → **Garage** → tap the instrument cluster.
+3. On the **Connections** list, tap **Add** → choose **ELM327 (BLE)**.
 4. Select device: **IOS-Vlink**.
-5. Enter the BLE UUIDs:
+5. After the connection is added, tap it in the list → tap **Select Vehicle**.
+6. Scroll down to **Custom Channel Description File** and browse to `realdash_cultus_2016.xml`.
+7. Tap **Done** — RealDash will reconnect using the custom init sequence and start polling engine data.
 
-   | Field | UUID |
-   |-------|------|
-   | Service UUID | `e7810a71-73ae-499d-8c15-faa9aef0c3f2` |
-   | Write UUID | `bef8d6c9-9c21-4c9e-b632-bd58c1009f9f` |
-   | Notify UUID | `bef8d6c9-9c21-4c9e-b632-bd58c1009f9f` |
-
-6. When prompted for the XML file, select `realdash_cultus_2016.xml`.
-7. Connect — the ELM327 init fires automatically on first connect.
+> If you see "obd2 property not found in file" you have the old XML. Re-download `realdash_cultus_2016.xml` from the repo.
 
 ### RealDash targetId → gauge mapping
 
@@ -200,11 +197,11 @@ The XML maps data to standard RealDash channel IDs:
 
 | targetId | Channel | Parameter |
 |----------|---------|-----------|
-| 31 | RPM | Engine RPM |
+| 37 | RPM | Engine RPM |
 | 36 | Coolant Temp | Coolant Temperature |
 | 39 | Speed | Vehicle Speed |
 | 33 | TPS | Throttle Position |
-| 37 | IAT | Intake Air Temp |
+| 38 | IAT | Intake Air Temp |
 | 42 | Baro | Barometric Pressure |
 | 14 | Batt | Battery Voltage |
 | 34 | Engine Load | Engine Load |

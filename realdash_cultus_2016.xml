@@ -1,180 +1,174 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  RealDash Custom Connection — Suzuki Cultus 2016 PK (K-Line KWP2000)
+  RealDash OBD2 Custom Connection — Suzuki Cultus 2016 PK (K-Line KWP2000)
   Adapter : IOS-Vlink BLE (ELM327 v2.3)
   Protocol: ISO 14230-4 KWP fast init, ECU address 0x11
 
-  HOW TO USE IN REALDASH:
-    1. Connections → Add → RealDash Custom (BLE)
-    2. Select device: IOS-Vlink
-    3. Service UUID  : e7810a71-73ae-499d-8c15-faa9aef0c3f2
-    4. Write UUID    : bef8d6c9-9c21-4c9e-b632-bd58c1009f9f
-    5. Notify UUID   : bef8d6c9-9c21-4c9e-b632-bd58c1009f9f
-    6. Select this XML file
+  CONNECTION TYPE IN REALDASH: ELM327 (BLE)
+  To import: Connections → tap your ELM327 connection → Select Vehicle
+             → scroll to "Custom Channel Description File" → pick this file
 
-  BYTE MAP (response to "21 00", after stripping 61 00 header):
-    b[14]     Coolant temp    (V - 40 = °C)
-    b[20:21]  RPM             ((B0<<8|B1) * 0.25)
-    b[22]     Vehicle speed   (km/h)
-    b[24]     Intake air temp (V - 40 = °C)
-    b[27]     Throttle pos    (V * 0.392 = %)
-    b[41]     Baro pressure   (V * 0.5 = kPa)
-    b[49]     Battery voltage (V * 0.0784 = V)
+  RESPONSE LAYOUT (rawReply="true"):
+    B0  = 0x61  (response service ID = request 0x21 + 0x40)
+    B1  = 0x00  (local ID echo)
+    B2  = data[0] ...  B66 = data[64]
 
-  NOTE: offsets below are into the FULL response (include 61 00 prefix = +2)
+  Offsets below: Bx where x = data_byte_index + 2
 -->
-<RealDashCAN version="2">
-  <frames>
+<OBD2>
 
-    <!-- ═══════════════════════════════════════════════════════════════
-         FRAME 0 — ELM327 + ECU initialisation (sent ONCE on connect)
-         All AT commands as ASCII bytes + CR (0x0D) per command.
-         Delays between commands are handled by ELM327 prompt response.
-         ═══════════════════════════════════════════════════════════════ -->
-    <frame id="0" name="ELM327_Init" length="0"
-           writeEnabled="true" writeOnlyOnce="true">
-      <writeData>
-        41 54 5A 0D
-        41 54 45 30 0D
-        41 54 4C 30 0D
-        41 54 53 30 0D
-        41 54 48 30 0D
-        41 54 41 4C 0D
-        41 54 49 42 31 30 0D
-        41 54 4B 57 30 0D
-        41 54 53 57 30 30 0D
-        41 54 41 54 30 0D
-        41 54 43 41 46 31 0D
-        41 54 43 46 43 31 0D
-        41 54 46 43 53 4D 30 0D
-        41 54 54 50 35 0D
-        41 54 53 48 20 38 31 20 31 31 20 46 31 0D
-        41 54 53 54 20 31 39 0D
-        41 54 46 49 0D
-        41 54 4B 57 0D
-        33 45 0D
-      </writeData>
-      <!--
-        Decoded:
-          ATZ\r
-          ATE0\r
-          ATL0\r
-          ATS0\r       (spaces off — critical!)
-          ATH0\r
-          ATAL\r
-          ATIB10\r
-          ATKW0\r
-          ATSW00\r
-          ATAT0\r
-          ATCAF1\r
-          ATCFC1\r
-          ATFCSM0\r
-          ATTP5\r      (KWP fast init protocol)
-          ATSH 81 11 F1\r   (header: fmt=0x81, ECU=0x11, tester=0xF1)
-          ATST 19\r    (100ms timeout)
-          ATFI\r       (fast init — wakes engine ECU)
-          ATKW\r       (read keyword bytes)
-          3E\r         (TesterPresent)
-      -->
-    </frame>
+  <init>
+    <!-- ELM327 reset — ate0/atl0/ats0 MUST stay for RealDash to parse replies -->
+    <command send="atz"></command>
+    <command send="ate0"></command>
+    <command send="atl0"></command>
+    <command send="ats0"></command>
+    <command send="ath0"></command>
 
-    <!-- ═══════════════════════════════════════════════════════════════
-         FRAME 1 — TesterPresent keepalive (every 2000ms)
-         Must be sent to keep ECU session alive.
-         ═══════════════════════════════════════════════════════════════ -->
-    <frame id="1" name="TesterPresent" length="0"
-           writeEnabled="true" writeInterval="2000">
-      <writeData>33 45 0D</writeData>
-      <!-- 3E\r = TesterPresent, ECU replies 7E -->
-    </frame>
+    <!-- KWP2000 specific flags (from SZ Viewer APK decompilation) -->
+    <command send="atal"></command>     <!-- allow long messages (>7 bytes) -->
+    <command send="atib10"></command>   <!-- K-Line baud 10400 -->
+    <command send="atkw0"></command>    <!-- skip keyword byte validation -->
+    <command send="atsw00"></command>   <!-- wakeup interval off -->
+    <command send="atat0"></command>    <!-- adaptive timing off -->
+    <command send="atcaf1"></command>
+    <command send="atcfc1"></command>
+    <command send="atfcsm0"></command>
 
-    <!-- ═══════════════════════════════════════════════════════════════
-         FRAME 2 — Engine data block (every 300ms)
-         Request : 21 00\r  → ASCII: 32 31 20 30 30 0D
-         Response: 61 00 [65 data bytes]  (67 bytes total)
+    <!-- KWP fast init sequence -->
+    <command send="attp5"></command>           <!-- ISO 14230-4 KWP fast init -->
+    <command send="atsh 81 11 f1"></command>   <!-- fmt=0x81, ECU=0x11, tester=0xF1 -->
+    <command send="atst 19"></command>          <!-- 100ms timeout -->
+    <command send="atfi"></command>             <!-- fast init — wakes ECU -->
+    <command send="atkw"></command>             <!-- read keyword bytes -->
+    <command send="3e"></command>               <!-- TesterPresent — start session -->
+  </init>
 
-         All offsets are into the FULL response including 61 00 header.
-         Data bytes start at offset 2.
-         ═══════════════════════════════════════════════════════════════ -->
-    <frame id="2" name="Engine_Data" length="67"
-           writeEnabled="true" writeInterval="300">
-      <writeData>32 31 20 30 30 0D</writeData>
-      <!-- 21 00\r -->
+  <rotation>
 
-      <!-- RPM — bytes [22:23] big-endian, × 0.25 -->
-      <value name="RPM"
-             units="rpm"
-             targetId="31"
-             offset="22"
-             length="2"
-             endian="big"
-             conversion="V*0.25"/>
+    <!-- TesterPresent keepalive — ECU drops session after ~2s without this -->
+    <command send="3e" skipCount="0" keepInRotation="true"
+             name="Cultus: TesterPresent"></command>
 
-      <!-- Coolant Temperature — byte [16], V-40 = °C -->
-      <value name="Coolant Temperature"
-             units="C"
-             targetId="36"
-             offset="16"
-             length="1"
-             conversion="V-40"/>
+    <!-- ═══════════════════════════════════════════════════════════
+         Engine data block — service 0x21, local ID 0x00
+         Request : 21 00
+         Response: 61 00 + 65 data bytes (67 bytes total)
+         rawReply="true": B0=0x61, B1=0x00, data starts at B2
+         ═══════════════════════════════════════════════════════════ -->
+    <command send="21 00" skipCount="0" rawReply="true" keepInRotation="true">
+      <values>
 
-      <!-- Vehicle Speed — byte [24], raw km/h -->
-      <value name="Vehicle Speed"
-             units="km/h"
-             targetId="39"
-             offset="24"
-             length="1"
-             conversion="V"/>
+        <!-- ── Core ────────────────────────────────────────────── -->
 
-      <!-- Throttle Position — byte [29], V × 0.392 = % -->
-      <value name="Throttle Position"
-             units="%"
-             targetId="33"
-             offset="29"
-             length="1"
-             conversion="V*0.392"/>
+        <!-- RPM  data[20:21] → B22,B23  ×0.25 -->
+        <value targetId="37"
+               conversion="(B22*256+B23)*0.25"
+               name="Cultus: RPM"></value>
 
-      <!-- Intake Air Temperature — byte [26], V-40 = °C -->
-      <value name="Intake Air Temp"
-             units="C"
-             targetId="37"
-             offset="26"
-             length="1"
-             conversion="V-40"/>
+        <!-- Coolant Temperature  data[14] → B16  V-40=°C -->
+        <value targetId="36"
+               units="C"
+               conversion="B16-40"
+               name="Cultus: Coolant Temp"></value>
 
-      <!-- Barometric Pressure — byte [43], V × 0.5 = kPa -->
-      <value name="Barometric Pressure"
-             units="kPa"
-             targetId="42"
-             offset="43"
-             length="1"
-             conversion="V*0.5"/>
+        <!-- Vehicle Speed  data[22] → B24  raw km/h -->
+        <value targetId="39"
+               units="km/h"
+               conversion="B24"
+               name="Cultus: Speed"></value>
 
-      <!-- Battery Voltage — byte [51], V × 0.0784 = V -->
-      <value name="Battery Voltage"
-             units="V"
-             targetId="14"
-             offset="51"
-             length="1"
-             conversion="V*0.0784"/>
+        <!-- Throttle Position  data[27] → B29  V×0.392=% -->
+        <value targetId="33"
+               units="%"
+               conversion="B29*0.392"
+               name="Cultus: TPS"></value>
 
-      <!-- Engine Load — byte [15], V × 100/255 = % -->
-      <value name="Engine Load"
-             units="%"
-             targetId="34"
-             offset="15"
-             length="1"
-             conversion="V*0.392157"/>
+        <!-- Intake Air Temperature  data[24] → B26  V-40=°C -->
+        <value targetId="38"
+               units="C"
+               conversion="B26-40"
+               name="Cultus: IAT"></value>
 
-      <!-- Ignition Advance — byte [25], V-64 = degrees -->
-      <value name="Ignition Advance"
-             units="deg"
-             targetId="45"
-             offset="25"
-             length="1"
-             conversion="V-64"/>
+        <!-- Barometric Pressure  data[41] → B43  V×0.5=kPa → ×0.05=bar -->
+        <value targetId="42"
+               units="bar"
+               conversion="B43*0.05"
+               name="Cultus: Baro Pressure"></value>
 
-    </frame>
+        <!-- Battery Voltage  data[49] → B51  V×0.0784=V -->
+        <value targetId="14"
+               conversion="B51*0.0784"
+               name="Cultus: Battery Voltage"></value>
 
-  </frames>
-</RealDashCAN>
+        <!-- ── Engine ──────────────────────────────────────────── -->
+
+        <!-- Engine Load  data[13] → B15  V×100/255=% -->
+        <value targetId="34"
+               units="%"
+               conversion="B15*0.392157"
+               name="Cultus: Engine Load"></value>
+
+        <!-- Ignition Advance  data[23] → B25  V-64=° BTDC -->
+        <value targetId="45"
+               conversion="B25-64"
+               name="Cultus: Ignition Advance"></value>
+
+        <!-- Desired Idle Speed  data[35] → B37  ×10=RPM (approx) -->
+        <value conversion="B37*10"
+               name="Cultus: Desired Idle RPM"></value>
+
+        <!-- ── Fuel / Injection ────────────────────────────────── -->
+
+        <!-- Injector Pulse Width  data[37:38] → B39,B40  ×0.256=ms
+             This is the closest proxy to fuel consumption rate.
+             Higher value = more fuel being injected per cycle.
+             Fuel economy degrades as this rises at a given RPM/speed. -->
+        <value targetId="59"
+               conversion="(B39*256+B40)*0.256"
+               name="Cultus: Injector PW (ms)"></value>
+
+        <!-- Fuel Pulse Control 1  data[11] → B13  (raw) -->
+        <value conversion="B13"
+               name="Cultus: Fuel Control 1 (raw)"></value>
+
+        <!-- Fuel Pulse Control 2  data[12] → B14  (raw) -->
+        <value conversion="B14"
+               name="Cultus: Fuel Control 2 (raw)"></value>
+
+        <!-- ── O2 / Fuel Trim ──────────────────────────────────── -->
+
+        <!-- O2 Sensor Voltage  data[29] → B31  ×0.0196≈0–5V
+             <0.45V = lean, >0.45V = rich -->
+        <value targetId="0"
+               conversion="B31*0.0196"
+               name="Cultus: O2 Sensor (V)"></value>
+
+        <!-- Short-Term Fuel Trim  data[30] → B32  V×0.78-100=%
+             0% = no correction, negative = lean correction, positive = rich -->
+        <value targetId="92"
+               conversion="B32*0.78-100"
+               name="Cultus: STFT (%)"></value>
+
+        <!-- ── Air ─────────────────────────────────────────────── -->
+
+        <!-- Air Flow  data[25] → B27  (raw byte, unit TBD) -->
+        <value conversion="B27"
+               name="Cultus: Air Flow (raw)"></value>
+
+        <!-- ── Idle Air Control ─────────────────────────────────── -->
+
+        <!-- IAC Position  data[42] → B44  V×0.392=% -->
+        <value conversion="B44*0.392"
+               name="Cultus: IAC Position (%)"></value>
+
+        <!-- IAC Flow  data[43] → B45  (raw) -->
+        <value conversion="B45"
+               name="Cultus: IAC Flow (raw)"></value>
+
+      </values>
+    </command>
+
+  </rotation>
+
+</OBD2>

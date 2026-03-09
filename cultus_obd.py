@@ -36,13 +36,30 @@ ECU_INIT = [
 # ── Engine data decoder (Engine_KWP_00_Local$ byte map) ──────────────────────
 @dataclass
 class EngineData:
-    rpm:        float
-    coolant_c:  int
-    speed_kmh:  int
-    tps_pct:    float
-    intake_c:   int
-    baro_kpa:   float
-    batt_v:     float
+    # Core
+    rpm:           float   # b[20:21] × 0.25
+    coolant_c:     int     # b[14] − 40
+    speed_kmh:     int     # b[22]
+    tps_pct:       float   # b[27] × 0.392
+    intake_c:      int     # b[24] − 40
+    baro_kpa:      float   # b[41] × 0.5
+    batt_v:        float   # b[49] × 0.0784
+    # Engine
+    engine_load:   float   # b[13] × 0.392157
+    ign_advance:   int     # b[23] − 64
+    desired_idle:  int     # b[35] × 10  (approx RPM)
+    # Fuel / injection
+    fuel_pulse1:   int     # b[11] raw control byte
+    fuel_pulse2:   int     # b[12] raw control byte
+    inj_pw_ms:     float   # b[37:38] × 0.256  (injector pulse width ms)
+    # Air
+    airflow_raw:   int     # b[25] (MAF/airflow raw byte)
+    # O2 / fuel trim
+    o2_v:          float   # b[29] × 0.0196  (0–5 V range)
+    stft_pct:      float   # b[30] × 0.78 − 100  (short-term fuel trim %)
+    # Idle air control
+    iac_pos:       float   # b[42] × 0.392
+
 
 def decode_engine_frame(raw_hex: str) -> EngineData | None:
     """Parse 21 00 response. Strips 6100 header, decodes byte map."""
@@ -50,15 +67,31 @@ def decode_engine_frame(raw_hex: str) -> EngineData | None:
     if not clean.startswith("6100") or len(clean) < 140:
         return None
     b = bytes.fromhex(clean[4:])  # skip 61 00 response header
+    if len(b) < 65:
+        return None
+
+    inj_pw_raw = (b[37] << 8) | b[38]  # big-endian 2-byte
+
     return EngineData(
-        rpm       = ((b[20] << 8) | b[21]) * 0.25,
-        coolant_c = b[14] - 40,
-        speed_kmh = b[22],
-        tps_pct   = b[27] * 0.392,
-        intake_c  = b[24] - 40,
-        baro_kpa  = b[41] * 0.5,
-        batt_v    = b[49] * 0.0784,
+        rpm          = ((b[20] << 8) | b[21]) * 0.25,
+        coolant_c    = b[14] - 40,
+        speed_kmh    = b[22],
+        tps_pct      = b[27] * 0.392,
+        intake_c     = b[24] - 40,
+        baro_kpa     = b[41] * 0.5,
+        batt_v       = b[49] * 0.0784,
+        engine_load  = b[13] * 0.392157,
+        ign_advance  = b[23] - 64,
+        desired_idle = b[35] * 10,
+        fuel_pulse1  = b[11],
+        fuel_pulse2  = b[12],
+        inj_pw_ms    = inj_pw_raw * 0.256,
+        airflow_raw  = b[25],
+        o2_v         = b[29] * 0.0196,
+        stft_pct     = b[30] * 0.78 - 100,
+        iac_pos      = b[42] * 0.392,
     )
+
 
 # ── ELM327 communication ─────────────────────────────────────────────────────
 class ELM327:
@@ -102,6 +135,7 @@ class ELM327:
                 return True
         return False
 
+
 # ── Main loop ─────────────────────────────────────────────────────────────────
 async def run():
     print(f"Scanning for {DEVICE_NAME}...")
@@ -128,8 +162,12 @@ async def run():
             return
 
         print("Connected.\n")
-        print(f"  {'RPM':>7}  {'Coolant':>9}  {'Speed':>7}  {'TPS':>6}  {'IAT':>6}  {'Baro':>8}  {'Batt':>6}")
-        print(f"  {'-'*65}")
+        hdr = (f"  {'RPM':>7}  {'Cool':>6}  {'Spd':>5}  {'TPS':>5}  "
+               f"{'IAT':>5}  {'Load':>5}  {'Ign':>5}  "
+               f"{'InjPW':>6}  {'O2':>5}  {'STFT':>6}  "
+               f"{'Baro':>7}  {'Batt':>5}  {'IAC':>5}")
+        print(hdr)
+        print("  " + "-" * (len(hdr) - 2))
 
         while True:
             await elm.send("3E", timeout=3)       # TesterPresent keepalive
@@ -138,12 +176,18 @@ async def run():
             if d:
                 print(
                     f"  {d.rpm:>7.0f}"
-                    f"  {d.coolant_c:>7}°C"
-                    f"  {d.speed_kmh:>5}km/h"
-                    f"  {d.tps_pct:>5.1f}%"
-                    f"  {d.intake_c:>4}°C"
-                    f"  {d.baro_kpa:>6.1f}kPa"
-                    f"  {d.batt_v:>5.2f}V"
+                    f"  {d.coolant_c:>4}°C"
+                    f"  {d.speed_kmh:>3}kph"
+                    f"  {d.tps_pct:>4.1f}%"
+                    f"  {d.intake_c:>3}°C"
+                    f"  {d.engine_load:>4.1f}%"
+                    f"  {d.ign_advance:>3}°"
+                    f"  {d.inj_pw_ms:>5.2f}ms"
+                    f"  {d.o2_v:>4.2f}V"
+                    f"  {d.stft_pct:>+5.1f}%"
+                    f"  {d.baro_kpa:>5.1f}kPa"
+                    f"  {d.batt_v:>4.2f}V"
+                    f"  {d.iac_pos:>4.1f}%"
                 )
             else:
                 print(f"  [bad frame] {raw[:40]}")
