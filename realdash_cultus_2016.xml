@@ -84,6 +84,10 @@
                conversion="B29*0.392"
                name="Cultus: TPS"></value>
 
+        <!-- Throttle Sensor Voltage  data[36] → B38  ×0.0196≈0–5V (raw ADC voltage) -->
+        <value conversion="B38*0.0196"
+               name="Cultus: TPS Sensor Voltage (V)"></value>
+
         <!-- Intake Air Temperature  data[24] → B26  V-40=°C -->
         <value targetId="38"
                units="C"

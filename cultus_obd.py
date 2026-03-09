@@ -41,6 +41,7 @@ class EngineData:
     coolant_c:     int     # b[14] − 40
     speed_kmh:     int     # b[22]
     tps_pct:       float   # b[27] × 0.392
+    tps_v:         float   # b[36] × 0.0196  (raw TPS sensor voltage, 0–5 V)
     intake_c:      int     # b[24] − 40
     baro_kpa:      float   # b[41] × 0.5
     batt_v:        float   # b[49] × 0.0784
@@ -77,6 +78,7 @@ def decode_engine_frame(raw_hex: str) -> EngineData | None:
         coolant_c    = b[14] - 40,
         speed_kmh    = b[22],
         tps_pct      = b[27] * 0.392,
+        tps_v        = b[36] * 0.0196,
         intake_c     = b[24] - 40,
         baro_kpa     = b[41] * 0.5,
         batt_v       = b[49] * 0.0784,
@@ -162,7 +164,7 @@ async def run():
             return
 
         print("Connected.\n")
-        hdr = (f"  {'RPM':>7}  {'Cool':>6}  {'Spd':>5}  {'TPS':>5}  "
+        hdr = (f"  {'RPM':>7}  {'Cool':>6}  {'Spd':>5}  {'TPS%':>5}  {'TPS_V':>6}  "
                f"{'IAT':>5}  {'Load':>5}  {'Ign':>5}  "
                f"{'InjPW':>6}  {'O2':>5}  {'STFT':>6}  "
                f"{'Baro':>7}  {'Batt':>5}  {'IAC':>5}")
@@ -179,6 +181,7 @@ async def run():
                     f"  {d.coolant_c:>4}°C"
                     f"  {d.speed_kmh:>3}kph"
                     f"  {d.tps_pct:>4.1f}%"
+                    f"  {d.tps_v:>5.2f}V"
                     f"  {d.intake_c:>3}°C"
                     f"  {d.engine_load:>4.1f}%"
                     f"  {d.ign_advance:>3}°"
