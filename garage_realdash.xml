@@ -43,7 +43,7 @@
       <value name="VehicleType" v="0"></value>
       <value name="EngineType" v="10"></value>
       <value name="VehicleColor" v="4294967295"></value>
-      <value name="KilometersToNextService" v="15000"></value>
+      <value name="KilometersToNextService" v="4000"></value>
       <value name="HoursToNextService" v="1500"></value>
       <value name="WheelSize" v="13.000000000000000"></value>
       <value name="DriveType" v="0"></value>
