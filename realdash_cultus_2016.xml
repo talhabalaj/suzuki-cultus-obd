@@ -122,11 +122,6 @@
 
         <!-- ── Fuel / Injection ────────────────────────────────── -->
 
-        <!-- Injector Pulse Width  b[37:38]=B39,B40  (B39<<8|B40)×0.256=ms -->
-        <value targetId="35"
-               conversion="(B39*256+B40)*0.256"
-               name="Cultus: Injector PW (ms)"></value>
-
         <!-- Fuel Pulse Control 1  b[11]=B13  raw -->
         <value conversion="B13"
                name="Cultus: Fuel Control 1 (raw)"></value>
@@ -137,21 +132,29 @@
 
         <!-- ── O2 / Fuel Trim ──────────────────────────────────── -->
 
-        <!-- O2 Sensor Voltage  b[29]=B31  ×0.0196≈0–5V  (Lambda 1 is closest RealDash slot) -->
+        <!-- O2 Sensor Voltage  b[29]=B31  ×0.005V -->
         <value targetId="254"
-               conversion="B31*0.0196"
-               name="Cultus: O2 Sensor (V)"></value>
+               conversion="B31*0.005"
+               name="Cultus: O2 B1S1 (V)"></value>
 
-        <!-- Short-Term Fuel Trim  b[30]=B32  V×0.78-100=% -->
+        <!-- Short-Term Fuel Trim Bank 1  b[15]=B17  V×0.78125-100=% -->
         <value targetId="17"
-               conversion="B32*0.78-100"
-               name="Cultus: STFT (%)"></value>
+               conversion="B17*0.78125-100"
+               name="Cultus: STFT Bank 1 (%)"></value>
 
         <!-- ── Air ─────────────────────────────────────────────── -->
 
-        <!-- Air Flow  b[25]=B27  raw -->
-        <value conversion="B27"
-               name="Cultus: Air Flow (raw)"></value>
+        <!-- Manifold Absolute Pressure  b[19]=B21  raw kPa -->
+        <value targetId="31"
+               units="kPa"
+               conversion="B21"
+               name="Cultus: MAP"></value>
+
+        <!-- Mass Air Flow  b[25:26]=B27,B28  (B27<<8|B28)×0.01=g/s -->
+        <value targetId="30"
+               units="g/s"
+               conversion="(B27*256+B28)*0.01"
+               name="Cultus: MAF"></value>
 
         <!-- ── Idle Air Control ─────────────────────────────────── -->
 
@@ -162,6 +165,16 @@
         <!-- IAC Flow  b[43]=B45  raw -->
         <value conversion="B45"
                name="Cultus: IAC Flow (raw)"></value>
+
+        <!-- Brake Switch  SZ Viewer generic KWP map: b[68] bit 7 = B70 bit 7.
+             Closest RealDash target is Brake pedal position (%), but this is a switch.
+             Emit plain 0/1 so the dash can treat it as false/true.
+             Note: this is outside the 65-byte frame currently documented here,
+             so it depends on the ECU returning the longer variant used by SZ Viewer. -->
+        <value targetId="230"
+               units="%"
+               conversion="((B70&amp;128)/128)"
+               name="Cultus: Brake Switch"></value>
 
       </values>
     </command>

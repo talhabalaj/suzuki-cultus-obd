@@ -54,17 +54,24 @@ class EngineData:
     engine_load:   float   # b[13] × 0.392157
     ign_advance:   int     # b[23] − 64
     desired_idle:  int     # b[35] × 10  (approx RPM)
+    map_kpa:       int     # b[19] raw manifold absolute pressure, kPa
     # Fuel / injection
-    fuel_pulse1:   int     # b[11] raw control byte
-    fuel_pulse2:   int     # b[12] raw control byte
-    inj_pw_ms:     float   # b[37:38] × 0.256  (injector pulse width ms)
+    control1_raw:  int     # b[11] raw control byte
+    control2_raw:  int     # b[12] raw control byte
+    fuel_pulse1_ms: float  # b[37:38] × 0.001  (bank 1 injector pulse ms)
+    fuel_pulse2_ms: float  # b[39:40] × 0.001  (bank 2 injector pulse ms)
     # Air
-    airflow_raw:   int     # b[25] (MAF/airflow raw byte)
+    maf_gps:       float   # b[25:26] × 0.01  (mass airflow g/s)
     # O2 / fuel trim
-    o2_v:          float   # b[29] × 0.0196  (0–5 V range)
-    stft_pct:      float   # b[30] × 0.78 − 100  (short-term fuel trim %)
+    o2_b1s1_v:     float   # b[29] × 0.005  (bank 1 sensor 1 voltage)
+    stft1_pct:     float   # b[15] × 0.78125 − 100  (short-term fuel trim %)
+    ltft1_pct:     float   # b[16] × 0.78125 − 100  (long-term fuel trim %)
+    stft2_pct:     float   # b[17] × 0.78125 − 100  (short-term fuel trim %)
+    ltft2_pct:     float   # b[18] × 0.78125 − 100  (long-term fuel trim %)
     # Idle air control
     iac_pos:       float   # b[42] × 0.392
+    # Switches
+    brake_switch:  bool | None  # SZ Viewer generic KWP map: b[68] bit 7, if present
 
 
 def decode_engine_frame(raw_hex: str) -> EngineData | None:
@@ -76,7 +83,10 @@ def decode_engine_frame(raw_hex: str) -> EngineData | None:
     if len(b) < 65:
         return None
 
-    inj_pw_raw = (b[37] << 8) | b[38]  # big-endian 2-byte
+    fuel_pulse1_raw = (b[37] << 8) | b[38]
+    fuel_pulse2_raw = (b[39] << 8) | b[40]
+    maf_raw = (b[25] << 8) | b[26]
+    brake_switch = bool(b[68] & 0x80) if len(b) > 68 else None
 
     return EngineData(
         rpm          = ((b[20] << 8) | b[21]) * 0.25,
@@ -90,13 +100,19 @@ def decode_engine_frame(raw_hex: str) -> EngineData | None:
         engine_load  = b[13] * 0.392157,
         ign_advance  = b[23] - 64,
         desired_idle = b[35] * 10,
-        fuel_pulse1  = b[11],
-        fuel_pulse2  = b[12],
-        inj_pw_ms    = inj_pw_raw * 0.256,
-        airflow_raw  = b[25],
-        o2_v         = b[29] * 0.0196,
-        stft_pct     = b[30] * 0.78 - 100,
+        map_kpa      = b[19],
+        control1_raw = b[11],
+        control2_raw = b[12],
+        fuel_pulse1_ms = fuel_pulse1_raw * 0.001,
+        fuel_pulse2_ms = fuel_pulse2_raw * 0.001,
+        maf_gps      = maf_raw * 0.01,
+        o2_b1s1_v    = b[29] * 0.005,
+        stft1_pct    = b[15] * 0.78125 - 100,
+        ltft1_pct    = b[16] * 0.78125 - 100,
+        stft2_pct    = b[17] * 0.78125 - 100,
+        ltft2_pct    = b[18] * 0.78125 - 100,
         iac_pos      = b[42] * 0.392,
+        brake_switch = brake_switch,
     )
 
 
@@ -271,10 +287,10 @@ async def run():
             return
 
         print("Connected.\n")
-        hdr = (f"  {'RPM':>7}  {'Cool':>6}  {'Spd':>5}  {'TPS%':>5}  {'TPS_V':>6}  "
-               f"{'IAT':>5}  {'Load':>5}  {'Ign':>5}  "
-               f"{'InjPW':>6}  {'O2':>5}  {'STFT':>6}  "
-               f"{'Baro':>7}  {'Batt':>5}  {'IAC':>5}")
+        hdr = (f"  {'RPM':>7}  {'Cool':>6}  {'Spd':>5}  {'TPS%':>5}  {'MAP':>6}  "
+               f"{'MAF':>7}  {'PW1':>6}  {'PW2':>6}  "
+               f"{'ST1':>6}  {'LT1':>6}  {'O2':>5}  "
+               f"{'Baro':>7}  {'Batt':>5}  {'Brk':>3}")
         print(hdr)
         print("  " + "-" * (len(hdr) - 2))
 
@@ -288,16 +304,16 @@ async def run():
                     f"  {d.coolant_c:>4}°C"
                     f"  {d.speed_kmh:>3}kph"
                     f"  {d.tps_pct:>4.1f}%"
-                    f"  {d.tps_v:>5.2f}V"
-                    f"  {d.intake_c:>3}°C"
-                    f"  {d.engine_load:>4.1f}%"
-                    f"  {d.ign_advance:>3}°"
-                    f"  {d.inj_pw_ms:>5.2f}ms"
-                    f"  {d.o2_v:>4.2f}V"
-                    f"  {d.stft_pct:>+5.1f}%"
+                    f"  {d.map_kpa:>4}kPa"
+                    f"  {d.maf_gps:>5.2f}g/s"
+                    f"  {d.fuel_pulse1_ms:>5.3f}ms"
+                    f"  {d.fuel_pulse2_ms:>5.3f}ms"
+                    f"  {d.stft1_pct:>+5.1f}%"
+                    f"  {d.ltft1_pct:>+5.1f}%"
+                    f"  {d.o2_b1s1_v:>4.3f}V"
                     f"  {d.baro_kpa:>5.1f}kPa"
                     f"  {d.batt_v:>4.2f}V"
-                    f"  {d.iac_pos:>4.1f}%"
+                    f"  {('ON' if d.brake_switch else 'OFF') if d.brake_switch is not None else '?':>3}"
                 )
             else:
                 print(f"  [bad frame] {raw[:40]}")

@@ -191,6 +191,18 @@ The XML file uses the **OBD2 format** (`<OBD2>` root), which is loaded into an *
 
 > If you see "obd2 property not found in file" you have the old XML. Re-download `realdash_cultus_2016.xml` from the repo.
 
+### Fuel consumption note
+
+Older revisions of this repo exposed a mis-scaled injector pulse-width channel to RealDash. That made RealDash prefer an incorrect fuel-consumption primitive and could produce implausible instant consumption.
+
+The current XML intentionally does **not** export RealDash injector pulse width. Fuel consumption is expected to follow this fallback order instead:
+
+- direct fuel flow, if a verified ECU primitive is ever found
+- otherwise MAF (`targetId=30`)
+- otherwise MAP (`targetId=31`) plus the existing engine metadata in the garage profile
+
+This does **not** reproduce MotorData's hidden native fuel math exactly. It only aligns RealDash with the corrected SZ Viewer primitive map so RealDash can choose a more credible path.
+
 ### RealDash targetId → gauge mapping
 
 The XML maps data to standard RealDash channel IDs:
@@ -201,14 +213,15 @@ The XML maps data to standard RealDash channel IDs:
 | 14 | Coolant Temp | Coolant Temperature |
 | 64 | Speed | Vehicle Speed KPH |
 | 42 | TPS | Throttle Position % |
+| 30 | MAF | Mass Air Flow g/s |
+| 31 | MAP | Manifold Absolute Pressure kPa |
 | 27 | IAT | Intake Air Temp |
 | 11 | Baro | Barometric Pressure kPa |
 | 12 | Batt | Battery Voltage |
 | 100 | Engine Load | Engine Load % |
 | 38 | Ign Advance | Spark Advance deg |
-| 35 | Injector PW | Injector Pulse Width ms |
-| 254 | O2 Sensor | O2 Sensor Voltage (Lambda 1) |
-| 17 | STFT | Short-Term Fuel Trim % |
+| 254 | O2 Sensor | O2 Sensor Voltage Bank 1 Sensor 1 |
+| 17 | STFT | Short-Term Fuel Trim Bank 1 % |
 
 ---
 
@@ -220,15 +233,26 @@ Full decode table for all known bytes in the `21 00` response (data bytes, 0-ind
 |---------|-----------|---------|------|
 | 13 | Engine Load | `V × 0.392157` | % |
 | 14 | Coolant Temperature | `V − 40` | °C |
+| 15 | Short-Term Fuel Trim Bank 1 | `V × 0.78125 − 100` | % |
+| 16 | Long-Term Fuel Trim Bank 1 | `V × 0.78125 − 100` | % |
+| 17 | Short-Term Fuel Trim Bank 2 | `V × 0.78125 − 100` | % |
+| 18 | Long-Term Fuel Trim Bank 2 | `V × 0.78125 − 100` | % |
+| 19 | Manifold Absolute Pressure | `V` | kPa |
 | 20–21 | Engine RPM | `(B[20] << 8 \| B[21]) × 0.25` | rpm |
 | 22 | Vehicle Speed | `V` | km/h |
 | 23 | Ignition Advance | `V − 64` | ° BTDC |
 | 24 | Intake Air Temperature | `V − 40` | °C |
+| 25–26 | Mass Air Flow | `(B[25] << 8 \| B[26]) × 0.01` | g/s |
 | 27 | Throttle Position Sensor | `V × 0.392` | % |
+| 29 | O2 Bank 1 Sensor 1 | `V × 0.005` | V |
+| 37–38 | Fuel Pulse Bank 1 | `(B[37] << 8 \| B[38]) × 0.001` | ms |
+| 39–40 | Fuel Pulse Bank 2 | `(B[39] << 8 \| B[40]) × 0.001` | ms |
 | 41 | Barometric Pressure | `V × 0.5` | kPa |
 | 49 | Battery Voltage | `V × 0.0784` | V |
 
-Bytes not listed here are present in the response but their meaning has not been mapped yet. Contributions welcome.
+Bytes `11` and `12` are left as raw control bytes. They are not treated as injector pulse-width primitives.
+
+MotorData source inspection in this repo suggests the app prefers fuel-rate/MAF-style primitives, but the exact Suzuki formula remains inside native code and has not been recovered.
 
 ---
 

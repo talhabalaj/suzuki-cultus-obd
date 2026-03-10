@@ -7,7 +7,7 @@
         "21": "00"
       },
       "freq": 3,
-      "description": "K-Line KWP2000 only (ISO 14230-4 fast init). ECU address 0x11, tester 0xF1. Init sequence: ATTP5, ATSH 81 11 F1. Confirmed on Suzuki Cultus 2016 Pakistan (Alto K10 / K10B engine) and expected to apply to Suzuki Swift 1999 which shares the same Engine ECU platform. Response header: 61 00, followed by 65 data bytes. All bix offsets are into the data bytes only (i.e. after stripping the 2-byte 61 00 response header). Byte map was reverse-engineered from the SZ Viewer Android APK (Engine_KWP_00_Local$ class) and confirmed by live driving correlation.",
+      "description": "K-Line KWP2000 only (ISO 14230-4 fast init). ECU address 0x11, tester 0xF1. Init sequence: ATTP5, ATSH 81 11 F1. Confirmed on Suzuki Cultus 2016 Pakistan (Alto K10 / K10B engine) and expected to apply to Suzuki Swift 1999 which shares the same Engine ECU platform. Response header: 61 00, followed by 65 data bytes. All bix offsets are into the data bytes only (i.e. after stripping the 2-byte 61 00 response header). Fuel-rate related mappings in this file follow the decompiled SZ Viewer Engine_KWP_00_Local$ byte map so RealDash can prefer MAF/MAP primitives instead of the previously mis-scaled injector signal.",
       "signals": [
         {
           "id": "SWIFT_ENGINE_LOAD",
@@ -46,7 +46,7 @@
             "max": 255,
             "unit": "scalar"
           },
-          "name": "Fuel pulse control 1 (raw)"
+          "name": "Fuel pulse control 1 (raw control byte)"
         },
         {
           "id": "SWIFT_FUEL_CTRL_2",
@@ -57,7 +57,19 @@
             "max": 255,
             "unit": "scalar"
           },
-          "name": "Fuel pulse control 2 (raw)"
+          "name": "Fuel pulse control 2 (raw control byte)"
+        },
+        {
+          "id": "SWIFT_MAP",
+          "path": "Engine",
+          "fmt": {
+            "bix": 152,
+            "len": 8,
+            "max": 255,
+            "unit": "kiloPascals"
+          },
+          "name": "Manifold absolute pressure",
+          "suggestedMetric": "intakeManifoldAbsolutePressure"
         },
         {
           "id": "SWIFT_RPM",
@@ -113,15 +125,17 @@
           "suggestedMetric": "intakeAirTemperature"
         },
         {
-          "id": "SWIFT_AIRFLOW_RAW",
+          "id": "SWIFT_MAF",
           "path": "Engine",
           "fmt": {
             "bix": 200,
-            "len": 8,
-            "max": 255,
-            "unit": "scalar"
+            "len": 16,
+            "max": 655.35,
+            "div": 100,
+            "unit": "gramsPerSecond"
           },
-          "name": "Air flow (raw MAF byte — scaling unconfirmed)"
+          "name": "Mass air flow",
+          "suggestedMetric": "massAirFlow"
         },
         {
           "id": "SWIFT_TPS",
@@ -156,29 +170,75 @@
           "fmt": {
             "bix": 232,
             "len": 8,
-            "max": 5,
-            "mul": 196,
-            "div": 10000,
+            "max": 1.275,
+            "mul": 5,
+            "div": 1000,
             "unit": "volts"
           },
-          "name": "O2 sensor voltage (0–5 V)",
+          "name": "O2 sensor voltage (bank 1 sensor 1)",
           "suggestedMetric": "oxygenSensorVoltageBank1Sensor1"
         },
         {
-          "id": "SWIFT_STFT",
+          "id": "SWIFT_STFT_B1",
           "path": "Fuel",
           "fmt": {
-            "bix": 240,
+            "bix": 120,
             "len": 8,
             "max": 99,
             "min": -100,
-            "mul": 78,
-            "div": 100,
+            "mul": 78125,
+            "div": 100000,
             "add": -100,
             "unit": "percent"
           },
-          "name": "Short-term fuel trim",
+          "name": "Short-term fuel trim bank 1",
           "suggestedMetric": "shortTermFuelTrimBank1"
+        },
+        {
+          "id": "SWIFT_LTFT_B1",
+          "path": "Fuel",
+          "fmt": {
+            "bix": 128,
+            "len": 8,
+            "max": 99,
+            "min": -100,
+            "mul": 78125,
+            "div": 100000,
+            "add": -100,
+            "unit": "percent"
+          },
+          "name": "Long-term fuel trim bank 1",
+          "suggestedMetric": "longTermFuelTrimBank1"
+        },
+        {
+          "id": "SWIFT_STFT_B2",
+          "path": "Fuel",
+          "fmt": {
+            "bix": 136,
+            "len": 8,
+            "max": 99,
+            "min": -100,
+            "mul": 78125,
+            "div": 100000,
+            "add": -100,
+            "unit": "percent"
+          },
+          "name": "Short-term fuel trim bank 2"
+        },
+        {
+          "id": "SWIFT_LTFT_B2",
+          "path": "Fuel",
+          "fmt": {
+            "bix": 144,
+            "len": 8,
+            "max": 99,
+            "min": -100,
+            "mul": 78125,
+            "div": 100000,
+            "add": -100,
+            "unit": "percent"
+          },
+          "name": "Long-term fuel trim bank 2"
         },
         {
           "id": "SWIFT_DESIRED_IDLE",
@@ -193,18 +253,28 @@
           "name": "Desired idle speed"
         },
         {
-          "id": "SWIFT_INJ_PW",
+          "id": "SWIFT_FUEL_PULSE_1",
           "path": "Fuel",
           "fmt": {
             "bix": 296,
             "len": 16,
-            "max": 16777,
-            "mul": 256,
+            "max": 65.535,
             "div": 1000,
             "unit": "milliseconds"
           },
-          "name": "Injector pulse width",
-          "suggestedMetric": "fuelInjectorPulseWidth"
+          "name": "Injector pulse width bank 1"
+        },
+        {
+          "id": "SWIFT_FUEL_PULSE_2",
+          "path": "Fuel",
+          "fmt": {
+            "bix": 312,
+            "len": 16,
+            "max": 65.535,
+            "div": 1000,
+            "unit": "milliseconds"
+          },
+          "name": "Injector pulse width bank 2"
         },
         {
           "id": "SWIFT_BARO",
